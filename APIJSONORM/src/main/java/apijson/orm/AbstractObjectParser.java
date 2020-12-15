@@ -513,7 +513,7 @@ public abstract class AbstractObjectParser implements ObjectParser {
 			//			throw new IllegalAccessException("PUT " + path + ", PUT Array不允许 " + key + 
 			//					" 这种没有 + 或 - 结尾的key！不允许整个替换掉原来的Array！");
 		}
-		String realKey = AbstractSQLConfig.getRealKey(method, key, false, false, "`"); //FIXME PG 是 "
+		String realKey = AbstractSQLConfig.getRealKey(method, key, false, false);
 
 		//GET > add all 或 remove all > PUT > remove key
 
@@ -702,7 +702,7 @@ public abstract class AbstractObjectParser implements ObjectParser {
 	public JSONObject response() throws Exception {
 		if (sqlReponse == null || sqlReponse.isEmpty()) {
 			if (isTable) {//Table自身都获取不到值，则里面的Child都无意义，不需要再解析
-				return response;
+				return null;  // response;
 			}
 		} else {
 			response.putAll(sqlReponse);
@@ -746,19 +746,21 @@ public abstract class AbstractObjectParser implements ObjectParser {
 
 	public void parseFunction(String key, String value, String parentPath, String currentName, JSONObject currentObject) throws Exception {
 		Object result;
-		if (key.startsWith("@")) { //TODO 以后这种小众功能从 ORM 移出，作为一个 plugin/APIJSONProcedure
+		if (key.startsWith("@")) {
 			FunctionBean fb = AbstractFunctionParser.parseFunction(value, currentObject, true);
 
 			SQLConfig config = newSQLConfig(true);
 			config.setProcedure(fb.toFunctionCallString(true));
 			result = parseResponse(config, true);
+
+			key = key.substring(1);
 		}
 		else {
 			result = parser.onFunctionParse(key, value, parentPath, currentName, currentObject);
 		}
 
 		if (result != null) {
-			String k = AbstractSQLConfig.getRealKey(method, key, false, false, "`"); //FIXME PG 是 "
+			String k = AbstractSQLConfig.getRealKey(method, key, false, false);
 
 			response.put(k, result);
 			parser.putQueryResult(AbstractParser.getAbsPath(path, k), result);
